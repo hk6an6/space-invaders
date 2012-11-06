@@ -1,5 +1,9 @@
 var DEBUG = false;
 
+function randomNumber(max){
+	return Math.floor(Math.random() * max + 1);
+}
+
 //setup class inheritance
 Function.prototype.inheritsFrom = function( superClass ){
 	this.prototype = new superClass;
@@ -54,11 +58,12 @@ function Spaceship(){
 	this.width = 50;
 	this.height = 50;
 	this.counter = 0;
+    this.state = 'alive';
 }
 Spaceship.inheritsFrom(PhysicalEntity);
 //draw the Spaceship
 Spaceship.prototype.draw = function(context){
-	context.fillStyle = '#FFFFFF';
+	context.fillStyle = (this.state == 'alive' ? 'white' : 'purple');
 	context.beginPath();
 	context.moveTo( Math.floor(this.width)/2, 0);
 	context.lineTo(this.width, this.height);
@@ -111,7 +116,7 @@ function Laser(){
 Laser.inheritsFrom(PhysicalEntity);
 //draw a Laser
 Laser.prototype.draw = function(context){
-	context.fillStyle = 'white';
+	context.fillStyle = (this.state == 'clear' ? 'white' : 'blue');
 	context.fillRect(0, 0, this.width, this.height);
 }
 //update a laser
@@ -143,7 +148,7 @@ Missile.prototype.update = function() {
 }
 //override draw
 Missile.prototype.draw = function(context){
-	context.fillStyle = 'yellow';
+	context.fillStyle = (this.state == 'clear' ? 'yellow' : 'orange');
 	context.fillRect(0,0,this.width,this.height);
 }
 
@@ -184,6 +189,7 @@ Invader.prototype.fireMissile = function (){
 	var missile = new Missile();
 	missile.x = this.x;
 	missile.y = this.y;
+    missile.x += + (randomNumber(2) == 2 ? Math.floor(this.width/2) : -Math.floor(this.width/2) );
 	game.missiles.push(missile);
 }
 
@@ -281,7 +287,12 @@ var viewport = {
 	},
 	//initializes game content
 	startGame: function(){
-		
+        //clear remaining invaders
+		game.invaders = [];
+        //reset game state
+        game.state = 'started';
+        //reset spaceship state
+        game.spaceship.state = 'alive';
 	},
 	//create a line of invaders
 	populateInvaderRow: function(rowNumber){
