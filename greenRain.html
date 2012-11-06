@@ -1,0 +1,506 @@
+<!doctype html>
+<html>
+	<head>
+		<meta http-equiv="content-type" content='text/html; charset=utf-8'/>
+		<title>Keyboard bindings</title>
+		<style>
+		
+			body {
+				font-family: helvetica, arial;
+				font-size: small;
+			}
+		
+			#canvas {
+				border: 1px solid #0c0c0c;
+			}
+			
+			a#restartLink, a#toggleAccelerometerLink {
+				font-family: helvetica; 
+				font-size: large;
+				text-decoration: none;
+				color: blue;
+			}
+			
+			a#restartLink, a#toggleAccelerometerLink {
+				text-decoration: underline;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="canvas" width="500" height="400">
+			get a better browser ASAP		
+		</canvas>
+		<div id="debug">
+			
+		</div>
+		<div id="debugTouch">
+		
+		</div>
+		<div id="score">
+		
+		</div>
+		<p>
+			<a style="visibility: hidden" id="restartLink" href="#" onclick="startGame();">Restart Game</a>
+			<br/>
+			<a style="visibility: visible" id="toggleAccelerometerLink" href="#" onclick="toggleAccelerometer();">Toggle accelerometer</a>
+		</p>
+		<script type="text/javascript" charset="utf-8">
+			
+			function randomNumber(max){
+				return Math.floor(Math.random() * max + 1);
+			}
+			
+			function clearChildren(parentNode){
+				if(parentNode.childNodes){
+					while(parentNode.childNodes.length){
+						parentNode.removeChild(parentNode.childNodes[0]);
+					}
+				}
+			}
+			
+			function appendText(parentNode,text){
+				parentNode.appendChild(document.createTextNode(text));
+			}
+			
+			function getMousePosition(canvas, event){
+				var rectangle = canvas.getBoundingClientRect();
+				var root = document.documentElement;
+				var mouseX = event.clientX - rectangle.top - root.scrollTop;
+				var mouseY = event.clientY - rectangle.left - root.scrollLeft;
+				return {
+					x: mouseX
+					, y: mouseY
+				};
+			}
+			
+			function rectangle(x,y,width,height){
+				context.beginPath();
+				context.rect(x,y,width,height);
+				context.closePath();
+				context.fill();
+				context.stroke();
+			}
+			
+			function circle(x,y,radius){
+				context.beginPath();
+				context.arc(x,y,radius,0,Math.PI * 2, true);
+				context.closePath();
+				context.fill();
+				context.stroke();
+			}
+			
+			function Tomato(startX,startY){
+				this.x = startX;
+				this.y = startY;
+				this.isActive = true;
+				this.radius = 10;
+			}
+			
+			Tomato.prototype.collided = function(x,y,xt,yt){
+				return (Math.abs(x - this.x) <= this.radius 
+						|| Math.abs(xt - this.x) <= this.radius
+						|| Math.abs((((xt-x)/2)+x) - this.x) <= this.radius ) 
+					&& (Math.abs(y - this.y) <= this.radius 
+						|| Math.abs(yt - this.y) <= this.radius
+						|| Math.abs((((yt-y)/2)+y) - this.y) <= this.radius );
+			}
+				
+			Tomato.prototype.draw = function(){
+				if(!this.isActive){
+					return;
+				}
+				context.save();
+				context.fillStyle = "red";
+				context.strokeStyle = "green";
+				circle(this.x,this.y,this.radius);
+				context.restore();
+			}
+			
+			Bugger.prototype = new Tomato(0,0);
+			Bugger.prototype.constructor = Bugger;
+			Bugger.prototype.parent = Tomato.prototype;
+			
+			function Bugger(startX, startY){
+				this.x = startX;
+				this.y = startY;
+				this.yOffset = 0;
+				this.radius = 20;
+				this.DX = 3;
+				this.DY = 3;
+				this.onPath = 0;
+				this.lastDirection = 1;
+				this.resetRaindrops();
+			}
+			
+			Bugger.prototype.draw = function(){
+				context.save();
+				context.fillStyle = "green";
+				context.strokeStyle = "blue";
+				circle(this.x,this.y,this.radius);
+				context.restore();
+			};
+			
+			Bugger.prototype.moveUp = function (){
+				if(this.y - this.DY >= 0){
+					this.y -= this.DY;
+				}
+			}
+			
+			Bugger.prototype.moveDown = function (){
+				if(this.y + this.radius + this.DY <= HEIGHT){
+					this.y += this.DY;
+				}
+			}
+				
+			Bugger.prototype.moveLeft = function (){
+				if(this.x - this.DX >= 0)
+				{
+					this.x -= this.DX;
+				}
+			}
+			
+			Bugger.prototype.moveRight = function (){
+				if(this.x + this.radius + this.DX <= WIDTH){
+					this.x += this.DX;
+				}
+			}
+			
+			Bugger.prototype.resetRaindrops = function(){
+				if(this.x < 0 || this.y > HEIGHT){
+					this.yOffset = randomNumber(MAX_Y_OFFSET);
+					this.y = 0;
+					this.x = Math.floor( (-1 * this.yOffset)/RAIN_SLOPE );
+				}
+			}
+			
+			Bugger.prototype.slide = function(){
+				this.x -= 1;
+				this.y = RAIN_SLOPE * this.x + this.yOffset;
+				this.resetRaindrops();
+			}
+			
+			function Character(startX,startY){
+				this.x = startX;
+				this.y = startY;
+				this.strokeStyle = "blue";
+				this.width = 30;
+				this.height = 50;
+			}
+			
+			Character.prototype.powerUpCue = function(){
+				window.setTimeout(blinkCharacterStroke1,250);
+				window.setTimeout(blinkCharacterStroke2,500);
+				window.setTimeout(blinkCharacterStroke1,750);
+				window.setTimeout(blinkCharacterStroke2,1000);
+			}
+			
+			function blinkCharacterStroke1(){
+				character.strokeStyle = "red";
+				leveledUp = true;
+			}
+			
+			function blinkCharacterStroke2(){
+				character.strokeStyle = "blue";
+				leveledUp = false;
+			}
+			
+			Character.prototype.detectCollisions = function(){
+				for(var i =0; i < redDots.length; i++){
+					if(redDots[i].isActive){
+						if(redDots[i].collided(this.x,this.y,this.x+this.width,this.y+this.height)){
+							redDots[i].isActive = false;
+							collectedTomatoes++;
+							totalDots++;
+							outputScore();
+							this.powerUpCue();
+						}
+					}
+				}
+			}
+			
+			Character.prototype.moveUp = function (){
+				if(this.y - DY >= 0){
+					this.y -= (accelerometerToggled? Math.floor(DY * Math.abs(tiltFB/120) ): DY);
+				}
+			}
+			
+			Character.prototype.moveDown = function (){
+				if(this.y + this.height + DY <= HEIGHT){
+					this.y += (accelerometerToggled? Math.floor(DY * Math.abs(tiltFB+90)/60 ) : DY);
+				}
+			}
+				
+			Character.prototype.moveLeft = function (){
+				if(this.x - DX >= 0)
+				{
+					this.x -= (accelerometerToggled? Math.floor(DX * Math.abs(tiltLR/40) ) : DX);
+				}
+			}
+				
+			Character.prototype.moveRight = function (){
+				if(this.x + this.width + DX <= WIDTH){
+					this.x += (accelerometerToggled? Math.floor(DX * Math.abs(tiltLR/40) ) : DX);
+				}
+			}
+			
+			Character.prototype.draw = function(){
+				context.save();
+				context.fillStyle = "black";
+				context.strokeStyle = this.strokeStyle;
+				if(tiltLR > 0){
+					this.moveLeft();
+				}
+				if(tiltLR < 0){
+					this.moveRight();
+				}
+				if(tiltFB < -90){
+					this.moveUp();
+				}
+				if(tiltFB > -90){
+					this.moveDown();
+				}
+				rectangle(this.x,this.y,this.width,this.height);
+				context.restore();
+			}
+			
+			Character.prototype.moveTo = function(coordinates){
+				this.x = coordinates.x - Math.floor(this.width/2);
+				this.y = coordinates.y - Math.floor(this.height/2);
+			}
+			
+			var context;
+			const DX = 5;
+			const DY = 5;
+			const HEIGHT = 400;
+			const WIDTH = 500;
+			const RAIN_SLOPE = -2;
+			const FRAME_RATE = 10;
+			const GAME_RATE = 10;
+			const MAX_Y_OFFSET = 1400;
+			const DEBUG = true;
+			var gameLogicID = null;
+			var graphicsID = null;
+			var collectedTomatoes = 0;
+			var totalDots = 0;
+			var leveledUp = false;
+			var drawingStarted = false;
+			var tiltLR = 0;
+			var tiltFB = -90;
+			var accelerometerToggled = false;
+			
+			var redDots = [
+				new Tomato(randomNumber(WIDTH), randomNumber(HEIGHT))
+				, new Tomato(randomNumber(WIDTH), randomNumber(HEIGHT))
+				, new Tomato(randomNumber(WIDTH), randomNumber(HEIGHT))
+			];
+			var buggers = [new Bugger(randomNumber(WIDTH,HEIGHT))
+				, new Bugger(randomNumber(WIDTH,HEIGHT))
+				, new Bugger(randomNumber(WIDTH,HEIGHT))
+			];
+
+			var character = new Character(randomNumber(WIDTH), randomNumber(HEIGHT));
+			
+			function keyDown(event){
+				switch(event.keyCode){
+					case 87: //w
+					case 38: //up arrow
+						character.moveUp();
+					break;
+					case 83: //s
+					case 40: //down arrow
+						character.moveDown();
+					break;
+					case 65: //a
+					case 37: //left arrow
+						character.moveLeft();
+					break;
+					case 68: //d
+					case 39: //right arrow
+						character.moveRight();
+					break;
+				}
+			}
+			
+			function clear(){
+				context.clearRect(0,0,WIDTH,HEIGHT);
+				if(leveledUp){
+					blink();
+				}
+			}
+			
+			function drawString(ctx, text, textColor, rotation, font, fontSize) {
+				var lines = text.split("\n");
+				var posY = 0;
+				if (!rotation) rotation = 0;
+				if (!font) font = "'helvetica'";
+				if (!fontSize) fontSize = 16;
+				if (!textColor) textColor = '#000000';
+				posY = Math.floor( (HEIGHT - (fontSize*lines.length) )/2 );
+				ctx.save();
+				ctx.font = fontSize + "px " + font;
+				ctx.strokeStyle = textColor;
+				ctx.translate(0, posY);
+				ctx.rotate(rotation * Math.PI / 180);
+				for (i = 0; i < lines.length; i++) {
+					ctx.translate(Math.floor( (WIDTH - context.measureText(text).width)/2 ), 0);
+					ctx.strokeText(lines[i],0, i*fontSize);
+				}
+				ctx.restore();
+			}
+			
+			function blink(){
+				var scoreText = collectedTomatoes==0? "Level UP!\n"+ totalDots +" collected so far...": collectedTomatoes + ' collected\n... ' + (redDots.length - collectedTomatoes) + ' more to go';
+				drawString(context,scoreText,'gray',0,'helvetica',30);
+			}
+			
+			function draw(){
+				if(drawingStarted)
+					return;
+				drawingStarted = true;
+				clear();
+				for(var i = 0; i < redDots.length; i++){
+					redDots[i].draw();
+				}
+				for(var i = 0; i < buggers.length; i++){
+					buggers[i].draw();
+				}
+				character.draw();
+				drawingStarted = false;
+			}
+			
+			function gameLogic(){
+				character.detectCollisions();
+				for(var i = 0; i< buggers.length; i++){
+					buggers[i].slide();
+					if(buggers[i].collided(character.x,character.y,character.x+character.width,character.y+character.height))
+					{
+						stopGame();
+					}
+				}
+				if(collectedTomatoes>= redDots.length){
+					levelUp();
+				}	
+			}
+			
+			function debugMouseMove(mousePosition){
+				if(DEBUG){
+					var debugDiv = document.getElementById('debug');
+					clearChildren(debugDiv);
+					appendText(debugDiv,'<'+ mousePosition.x +','+ mousePosition.y +'>');
+				}
+			}
+			
+			function outputScore(msg){
+				var scoreDiv = document.getElementById('score');
+				var scoreText = collectedTomatoes + ' collected ... ' + (redDots.length - collectedTomatoes) + ' more to go';
+				clearChildren(scoreDiv);
+				if(msg){
+					appendText(scoreDiv, msg);
+				}else{
+					appendText(scoreDiv, scoreText);
+				}
+			}
+			
+			function setupHardwareControlsLayer(canvas){
+				canvas.addEventListener('mousemove', function(event){
+					var mousePosition = getMousePosition(canvas,event);
+					debugMouseMove(mousePosition);
+					character.moveTo(mousePosition);
+				}, false);
+				canvas.addEventListener('touchmove', function(event){
+					event.preventDefault();
+					var touchPosition = {x: event.targetTouches[0].pageX, y: event.targetTouches[0].pageY};
+					debugMouseMove(touchPosition);
+					character.moveTo(touchPosition);
+				}, false);
+				window.addEventListener('keydown',keyDown,true);
+			}
+			
+			function levelUp(){
+				buggers[buggers.length] = new Bugger(randomNumber(WIDTH), randomNumber(HEIGHT));
+				redDots[redDots.length] = new Tomato();
+				collectedTomatoes = 0;
+				for(var i = 0; i < redDots.length; i++){
+					redDots[i].x = randomNumber(WIDTH);
+					redDots[i].y = randomNumber(HEIGHT);
+					redDots[i].isActive = true;
+				}
+				outputScore('Leveled up!!! now playing level: '+ (redDots.length - 2 ));
+			}
+			
+			function stopGame(){
+				outputScore('your record: ' + totalDots);
+				if(gameLogicID){
+					window.clearInterval(gameLogicID);
+				}
+				if(graphicsID){
+					window.clearInterval(graphicsID);
+				}
+				gameLogicID = null;
+				graphicsID = null;
+				document.getElementById('restartLink').setAttribute('style','visibility: visible');
+				leveledUp = false;
+				draw();
+				var scoreText = "Total score: "+ totalDots +"\nRestart the game!";
+				drawString(context,scoreText,'gray',0,'helvetica',30);
+			}
+			
+			function startGame(){
+				stopGame();
+				collectedTomatoes = 0;
+				totalDots = 0;
+				redDots = [
+					new Tomato(randomNumber(WIDTH), randomNumber(HEIGHT))
+					, new Tomato(randomNumber(WIDTH), randomNumber(HEIGHT))
+					, new Tomato(randomNumber(WIDTH), randomNumber(HEIGHT))
+				];
+				buggers = [new Bugger(randomNumber(WIDTH,HEIGHT))
+					, new Bugger(randomNumber(WIDTH,HEIGHT))
+					, new Bugger(randomNumber(WIDTH,HEIGHT))
+				];
+				gameLogicID = window.setInterval(gameLogic,GAME_RATE);
+				graphicsID = setInterval(draw,FRAME_RATE);
+				document.getElementById('restartLink').setAttribute('style','visibility: hidden')
+				return graphicsID;
+			}
+			
+			function deviceMotionHandler(event){
+				var acceleration = event.accelerationIncludingGravity;
+				var facingUp = -1;
+				if (acceleration.z > 0) {
+					facingUp = +1;
+				}
+				tiltLR = Math.round(((acceleration.x) / 9.81) * -90);
+				tiltFB = Math.round(((acceleration.y + 9.81) / 9.81) * 90 * facingUp);
+			}
+			
+			function toggleAccelerometer(){
+				if(window.DeviceMotionEvent){
+					if(!accelerometerToggled){
+						window.addEventListener('devicemotion', deviceMotionHandler, false);
+					}
+					else{
+						window.removeEventListener('devicemotion', deviceMotionHandler, false);
+						tiltLR = 0;
+						tiltFB = -90;
+					}
+					accelerometerToggled = !accelerometerToggled;
+				}
+				else {
+					alert('This device does not support accelerometer sensors on HTML5');
+				}
+			}
+			
+			function init(canvasID){
+				var canvas = document.getElementById(canvasID);
+				context = document.getElementById(canvasID).getContext('2d');
+				setupHardwareControlsLayer(canvas);
+				debugMouseMove({ x: 0, y: 0});
+				outputScore();
+				return startGame();
+			}
+			
+			graphicsID = init('canvas');
+		</script>
+	</body>
+</html>
