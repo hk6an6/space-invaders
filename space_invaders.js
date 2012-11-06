@@ -225,7 +225,7 @@ OnScreenMessage.prototype.paint = function(context){
     context.fillStyle = this.titleFillStyle;
     context.font = this.titleFont;
     context.translate(0, this.titleFontSizePx);
-    this.drawText(context, 10+this.title, this.titleFontSizePx);
+    this.drawText(context, this.title, this.titleFontSizePx);
     context.font = this.bodyFont;
     context.fillStyle = this.bodyFillStyle;
     context.translate(0, this.bodyFontSizePx);
