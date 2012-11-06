@@ -246,6 +246,9 @@ var viewport = {
 	//updates the spaceship
 	updateSpaceship: function(){
 		game.spaceship.update();
+        if(game.spaceship.state == 'hit'){
+            game.state = 'ended';
+        }
 	},
 	paintShots: function(){
 		for(var i = 0; i < game.lasers.length; i++){
@@ -307,15 +310,33 @@ var viewport = {
 			game.invaders.push(invader);
 		}
 	},
+    //handle keydown events
+    onKeyDown: function(e){
+        if(game.state == 'started'){
+            game.keyboard[e.keyCode] = true;
+		} else if (e.keyCode == 32) { //spacebar pressed
+           viewport.startGame();
+           viewport.populateInvaderRow(0);
+           viewport.populateInvaderRow(1);
+        }
+    },
+    //handle keyup events
+    onKeyup: function(e) {
+        game.keyboard[e.keyCode] = false;
+    },
 	//registers keyboard events
 	addKeyboardEvents: function() {
 		addEvent(document, 'keydown', function(e){
-			game.keyboard[e.keyCode] = true;
+			viewport.onKeyDown(e);
 		}, true);
 		addEvent(document, 'keyup', function(e){
-			game.keyboard[e.keyCode] = false;
+			viewport.onKeyup(e);
 		}, true);
 	},
+    //draw messages on the screen
+    drawMessages: function(){
+        
+    },
 };
 
 //setup game controls
