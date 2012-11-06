@@ -193,6 +193,46 @@ Invader.prototype.fireMissile = function (){
 	game.missiles.push(missile);
 }
 
+//defines a message that is displayed on screen
+function OnScreenMessage(titleFontSize, bodyFontSize){
+    if(!titleFontSize) titleFontSize = 40;
+    if(!bodyFontSize) bodyFontSize = 14;
+    this.x = 0;
+    this.y = 0;
+    this.counter = -1;
+    this.title = 'title';
+    this.body = 'body';
+    this.alpha = 0.5;
+    this.titleFontSizePx = titleFontSize;
+    this.bodyFontSizePx = bodyFontSize;
+    this.titleFont = 'Bold ' + titleFontSize + 'px Helvetica, Arial';
+    this.bodyFont = bodyFontSize +'px Helvetica, Arial';
+    this.titleFillStyle = 'white';
+    this.bodyFillStyle = 'white';
+}
+//draw a string on screen using context setup
+OnScreenMessage.prototype.drawText = function(context, text, fontSizePx){
+    var text2Draw = text.split('\n');
+    var yOffset = 0;
+    for(var i = 0; i < text2Draw.length; i++){
+        context.fillText(text2Draw, (game.canvas.width - context.measureText(text2Draw).width)/2, 0);
+        context.translate(0, fontSizePx * i);
+    }
+}
+//draw message on screen
+OnScreenMessage.prototype.paint = function(context){
+    context.save();
+    context.fillStyle = this.titleFillStyle;
+    context.font = this.titleFont;
+    context.translate(0, this.titleFontSizePx);
+    this.drawText(context, 10+this.title, this.titleFontSizePx);
+    context.font = this.bodyFont;
+    context.fillStyle = this.bodyFillStyle;
+    context.translate(0, this.bodyFontSizePx);
+    this.drawText(context, 10+this.body, this.bodyFontSizePx);
+    context.restore();
+}
+
 var game = {
 	//keep track of game state
 	state: 'start',
