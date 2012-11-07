@@ -43,13 +43,13 @@ PhysicalEntity.prototype.paint = function(context){
 //draws the entity on screen
 PhysicalEntity.prototype.draw = function(context){
 	if(DEBUG) console.log('drawing: ' + this.constructor.name + '[width:' + this.width + ' height:' + this.height + '] at <' + this.x + ',' + this.y + '>');
-}
+};
 //returns true if the other entity collides with this one
 PhysicalEntity.prototype.hits = function( anotherPhysicalEntity ){
 	var distance = Math.sqrt( Math.pow(this.x - anotherPhysicalEntity.x, 2) + Math.pow(this.y - anotherPhysicalEntity.y, 2) );
 	return (distance <= this.width/2 && distance <= this.height/2) 
 			|| (distance <= anotherPhysicalEntity.width/2 && distance <= anotherPhysicalEntity.height/2);
-}
+};
 
 //defines a spaceship
 function Spaceship(){
@@ -59,7 +59,7 @@ function Spaceship(){
 	this.height = 50;
 	this.counter = 0;
     this.state = 'alive';
-}
+};
 Spaceship.inheritsFrom(PhysicalEntity);
 //draw the Spaceship
 Spaceship.prototype.draw = function(context){
@@ -71,7 +71,7 @@ Spaceship.prototype.draw = function(context){
 	context.closePath();
 	context.fill();
 	if(DEBUG) this.parent.draw.call(this, context);
-}
+};
 //updates Spaceship
 Spaceship.prototype.update = function() {
 	//move left
@@ -98,27 +98,27 @@ Spaceship.prototype.update = function() {
 		}
 	}
 	if(DEBUG) this.parent.update.call(this);
-}
+};
 //fire a Laser
 Spaceship.prototype.fireLaser = function() {
 	var laser = new Laser();
 	laser.x = this.x;
 	laser.y = this.y - Math.floor(this.height/2);
 	game.lasers.push(laser);
-}
+};
 
 //define a laser
 function Laser(){
 	this.width = 10;
 	this.height = 30;
 	this.state = 'clear';
-}
+};
 Laser.inheritsFrom(PhysicalEntity);
 //draw a Laser
 Laser.prototype.draw = function(context){
 	context.fillStyle = (this.state == 'clear' ? 'white' : 'blue');
 	context.fillRect(0, 0, this.width, this.height);
-}
+};
 //update a laser
 Laser.prototype.update = function(){
 	this.y -= 2;
@@ -129,14 +129,14 @@ Laser.prototype.update = function(){
 			game.invaders[i].counter = 0;
 		}
 	}
-}
+};
 
 //define a missile
 function Missile(){
 	this.width = 10;
 	this.height = 33;
 	this.state = 'clear';
-}
+};
 Missile.inheritsFrom(Laser);
 //override update
 Missile.prototype.update = function() {
@@ -145,12 +145,12 @@ Missile.prototype.update = function() {
 		this.state = 'hit';
 		game.spaceship.state = 'hit';
 	}
-}
+};
 //override draw
 Missile.prototype.draw = function(context){
 	context.fillStyle = (this.state == 'clear' ? 'yellow' : 'orange');
 	context.fillRect(0,0,this.width,this.height);
-}
+};
 
 //define a space invader
 function Invader(){
@@ -159,13 +159,13 @@ function Invader(){
 	this.phase = Math.floor(Math.random() * 50);
 	this.counter = 0;
 	this.state = 'alive';
-}
+};
 Invader.inheritsFrom(PhysicalEntity);
 //draw an invader
 Invader.prototype.draw = function(context){
 	context.fillStyle = this.state == 'hit'? 'purple' : 'red';
 	context.fillRect(0,0,this.width,this.height);
-}
+};
 //update an invader
 Invader.prototype.update = function(){
 	if(this.state == 'alive'){
@@ -183,7 +183,7 @@ Invader.prototype.update = function(){
 			this.counter = 0;
 		}
 	}
-}
+};
 //fire missiles
 Invader.prototype.fireMissile = function (){
 	var missile = new Missile();
@@ -191,7 +191,7 @@ Invader.prototype.fireMissile = function (){
 	missile.y = this.y;
     missile.x += + (randomNumber(2) == 2 ? Math.floor(this.width/2) : -Math.floor(this.width/2) );
 	game.missiles.push(missile);
-}
+};
 
 //defines a message that is displayed on screen
 function OnScreenMessage(titleFontSize, bodyFontSize){
@@ -209,7 +209,7 @@ function OnScreenMessage(titleFontSize, bodyFontSize){
     this.bodyFont = bodyFontSize +'px Helvetica, Arial';
     this.titleFillStyle = 'white';
     this.bodyFillStyle = 'white';
-}
+};
 //draw a string on screen using context setup
 OnScreenMessage.prototype.drawText = function(context, text, fontSizePx){
     var text2Draw = text.split('\n');
@@ -218,20 +218,20 @@ OnScreenMessage.prototype.drawText = function(context, text, fontSizePx){
         context.fillText(text2Draw, (game.canvas.width - context.measureText(text2Draw).width)/2, 0);
         context.translate(0, fontSizePx * i);
     }
-}
+};
 //draw message on screen
 OnScreenMessage.prototype.paint = function(context){
     context.save();
     context.fillStyle = this.titleFillStyle;
     context.font = this.titleFont;
     context.translate(0, this.titleFontSizePx);
-    this.drawText(context, this.title, this.titleFontSizePx);
+    this.drawText(context, this.title, 10 + this.titleFontSizePx);
     context.font = this.bodyFont;
     context.fillStyle = this.bodyFillStyle;
     context.translate(0, this.bodyFontSizePx);
-    this.drawText(context, 10+this.body, this.bodyFontSizePx);
+    this.drawText(context, this.body, 10 + this.bodyFontSizePx);
     context.restore();
-}
+};
 
 var game = {
 	//keep track of game state
