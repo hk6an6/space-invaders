@@ -45,10 +45,29 @@ PhysicalEntity.prototype.draw = function(context){
 	if(DEBUG) console.log('drawing: ' + this.constructor.name + '[width:' + this.width + ' height:' + this.height + '] at <' + this.x + ',' + this.y + '>');
 };
 //returns true if the other entity collides with this one
-PhysicalEntity.prototype.hits = function( anotherPhysicalEntity ){
-	var distance = Math.sqrt( Math.pow(this.x - anotherPhysicalEntity.x, 2) + Math.pow(this.y - anotherPhysicalEntity.y, 2) );
-	return (distance <= this.width/2 && distance <= this.height/2) 
-			|| (distance <= anotherPhysicalEntity.width/2 && distance <= anotherPhysicalEntity.height/2);
+PhysicalEntity.prototype.hits = function( anotherPhysicalEntity, stop){
+    if((anotherPhysicalEntity.x - anotherPhysicalEntity.width/2) > (this.x - this.width/2)
+        && (anotherPhysicalEntity.x - anotherPhysicalEntity.width/2) <= (this.x + this.width/2)){
+        if((anotherPhysicalEntity.y - anotherPhysicalEntity.width/2) > (this.y - this.width/2)
+            && (anotherPhysicalEntity.y - anotherPhysicalEntity.width/2) <= (this.y + this.width/2)){
+            return true;
+        } else if ((anotherPhysicalEntity.y + anotherPhysicalEntity.width/2) < (this.y + this.width/2)
+            && (anotherPhysicalEntity.y + anotherPhysicalEntity.width/2) >= (this.y - this.width/2)){
+            return true;
+        }
+    } else if ((anotherPhysicalEntity.x + anotherPhysicalEntity.width/2) < (this.x + this.width/2)
+        && (anotherPhysicalEntity.x + anotherPhysicalEntity.width/2) >= (this.x - this.width/2)) {
+        if((anotherPhysicalEntity.y - anotherPhysicalEntity.width/2) > (this.y - this.width/2)
+            && (anotherPhysicalEntity.y - anotherPhysicalEntity.width/2) <= (this.y + this.width/2)){
+            return true;
+        } else if ((anotherPhysicalEntity.y + anotherPhysicalEntity.width/2) < (this.y + this.width/2)
+            && (anotherPhysicalEntity.y + anotherPhysicalEntity.width/2) >= (this.y - this.width/2)){
+            return true;
+        }
+    }
+    if(!stop)
+        return anotherPhysicalEntity.hits(this, true);
+    return false;
 };
 
 //defines a spaceship
