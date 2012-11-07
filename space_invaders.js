@@ -93,6 +93,8 @@ Spaceship.prototype.draw = function(context){
 };
 //updates Spaceship
 Spaceship.prototype.update = function() {
+    //stop spaceship from moving if it's not 'alive'
+    if(this.state !== 'alive') return;
 	//move left
 	if(game.keyboard[37]){
 		this.x -= 10;
@@ -192,7 +194,7 @@ Invader.prototype.update = function(){
 	}
 	//swing right and left 3 pixels
 	this.x += Math.sin( this.counter * Math.PI * 2 / 100) * 3;
-	if( (this.counter + this.phase) % 200 == 0){
+	if( (this.counter + this.phase) % 200 === 0){
 		this.fireMissile();
 	}
 	if(this.state == 'hit'){
@@ -232,10 +234,13 @@ function OnScreenMessage(titleFontSize, bodyFontSize){
 //draw a string on screen using context setup
 OnScreenMessage.prototype.drawText = function(context, text, fontSizePx){
     var text2Draw = text.split('\n');
-    var yOffset = 0;
+    this.counter += 1;
+    this.alpha = this.counter/50.0;
+    if(this.alalpha>1) this.alpha = 1;
+    context.globalAlpha = this.alpha;
     for(var i = 0; i < text2Draw.length; i++){
-        context.fillText(text2Draw, (game.canvas.width - context.measureText(text2Draw).width)/2, 0);
         context.translate(0, fontSizePx * i);
+        context.fillText(text2Draw[i], (game.canvas.width - context.measureText(text2Draw[i]).width)/2, 0);
     }
 };
 //draw message on screen
@@ -244,11 +249,11 @@ OnScreenMessage.prototype.paint = function(context){
     context.fillStyle = this.titleFillStyle;
     context.font = this.titleFont;
     context.translate(0, this.titleFontSizePx);
-    this.drawText(context, this.title, 10 + this.titleFontSizePx);
+    this.drawText(context, this.title, this.titleFontSizePx);
     context.font = this.bodyFont;
     context.fillStyle = this.bodyFillStyle;
     context.translate(0, this.bodyFontSizePx);
-    this.drawText(context, this.body, 10 + this.bodyFontSizePx);
+    this.drawText(context, this.body, this.bodyFontSizePx);
     context.restore();
 };
 
@@ -271,8 +276,12 @@ var game = {
 	missiles: [],
 	//the game's spaceship
 	spaceship: new Spaceship(),
+    //on screen message
+    message: new OnScreenMessage(40,14),
 	//execute update and drawing operations
 	gameLoop: function(){
+        //update game state
+        game.update();
 		//update the spaceship
 		viewport.updateSpaceship();
 		//update fired lasers
@@ -287,7 +296,35 @@ var game = {
 		viewport.paintShots();
 		//draw the invaders
 		viewport.paintInvaders();
+        //if there's a message, display it
+        if(game.message.counter >=0) game.message.paint(game.context);
 	},
+    //update game state
+    update: function(){
+        if(game.spaceship.state === 'hit' && game.state === 'playing'){
+            game.state = 'over';
+            game.message.title = "\n\nGame Over";
+            game.message.body = '\npress spacebar to play again!';
+            game.message.counter = 0;
+        }
+        
+        else if(game.state === 'over' && game.keyboard[32]){
+            game.message.counter = -1;
+            viewport.startGame();    
+        }
+        
+        else if(game.state === 'playing' && game.invaders.length === 0){
+            game.state = 'won';
+            game.message.title = "\n\nInvaders exterminated";
+            game.message.body = '\npress spacebar to play again!';
+            game.message.counter = 0;
+        }
+        
+        else if(game.state === 'won' && game.keyboard[32]){
+            game.message.counter = -1;
+            viewport.startGame();
+        }
+    },
 	//a handle to stop game execution
 	gameLoopHandle: null,
 };
@@ -305,24 +342,23 @@ var viewport = {
 	//updates the spaceship
 	updateSpaceship: function(){
 		game.spaceship.update();
-        if(game.spaceship.state == 'hit'){
-            game.state = 'ended';
-        }
 	},
 	paintShots: function(){
-		for(var i = 0; i < game.lasers.length; i++){
+		var i;
+        for(i = 0; i < game.lasers.length; i++){
 			game.lasers[i].paint(game.context);
 		}
-		for(var i = 0; i < game.missiles.length; i++){
+		for(i = 0; i < game.missiles.length; i++){
 			game.missiles[i].paint(game.context);
 		}
 	},
 	//updates the lasers
 	updateShots: function(){
-		for(var i = 0; i < game.lasers.length; i++){
+        var i;
+		for(i = 0; i < game.lasers.length; i++){
 			game.lasers[i].update();
 		}
-		for(var i = 0; i < game.missiles.length; i++){
+		for(i = 0; i < game.missiles.length; i++){
 			game.missiles[i].update();
 		}
 		//remove lasers that are out of the viewport
@@ -352,32 +388,28 @@ var viewport = {
         //clear remaining invaders
 		game.invaders = [];
         //reset game state
-        game.state = 'started';
+        game.state = 'playing';
         //reset spaceship state
         game.spaceship.state = 'alive';
+        //create invaders
+        viewport.populateInvaderRow(0);
 	},
 	//create a line of invaders
 	populateInvaderRow: function(rowNumber){
-		if(!rowNumber || rowNumber == null){
+		if(!rowNumber || rowNumber === null){
 			rowNumber = 0;
 		}
 		for(var i = 0; i < 10; i++){
 			var invader = new Invader();
-			invader.x = (rowNumber % 2 == 0 ? 30 : 40) + ( i * 50);
+			invader.x = (rowNumber % 2 === 0 ? 30 : 40) + ( i * 50);
 			invader.y = 30 + (rowNumber * 50);
-			invader.counter = rowNumber % 2 == 0 ? 0 : 90;
+			invader.counter = rowNumber % 2 === 0 ? 0 : 90;
 			game.invaders.push(invader);
 		}
 	},
     //handle keydown events
     onKeyDown: function(e){
-        if(game.state == 'started'){
-            game.keyboard[e.keyCode] = true;
-		} else if (e.keyCode == 32) { //spacebar pressed
-           viewport.startGame();
-           viewport.populateInvaderRow(0);
-           viewport.populateInvaderRow(1);
-        }
+        game.keyboard[e.keyCode] = true;
     },
     //handle keyup events
     onKeyup: function(e) {
@@ -402,7 +434,5 @@ var viewport = {
 viewport.addKeyboardEvents();
 //initialize game content
 viewport.startGame();
-viewport.populateInvaderRow(0);
-viewport.populateInvaderRow(1);
 //make sure game loop gets run at a 60pfs rate
 game.gameLoopHandle = setInterval(game.gameLoop, 1000/game.gameSpeed);
