@@ -78,6 +78,7 @@ function Spaceship(){
 	this.height = 50;
 	this.counter = 0;
     this.state = 'alive';
+    this.bearing = 0;
 };
 Spaceship.inheritsFrom(PhysicalEntity);
 //draw the Spaceship
@@ -89,11 +90,18 @@ Spaceship.prototype.draw = function(context){
 	context.lineTo(0, this.height);
 	context.closePath();
 	context.fill();*/
-    context.drawImage(viewport.spaceship_image, 0, 0, this.width, this.height);
+    if(this.state == 'alive'){ 
+    	if(this.bearing == 0) context.drawImage(viewport.spaceship_image, 0, 0, this.width, this.height);
+    	else if(this.bearing == 1) context.drawImage(viewport.spaceship_image_right, 0, 0, this.width, this.height);
+    	else if(this.bearing == 3) context.drawImage(viewport.spaceship_image_left, 0, 0, this.width, this.height);
+    }
+    else if(this.state == 'hit') context.drawImage(viewport.spaceship_image_hit, 0, 0, this.width, this.height);
 	if(DEBUG) this.parent.draw.call(this, context);
 };
 //updates Spaceship
 Spaceship.prototype.update = function() {
+	//reset spaceship bearing
+	this.bearing = 0;
     //stop spaceship from moving if it's not 'alive'
     if(this.state !== 'alive') return;
 	//move left
@@ -102,6 +110,7 @@ Spaceship.prototype.update = function() {
 		if(this.x - Math.floor(this.width/2) < 0){
 			this.x = Math.floor(this.width/2);
 		}
+		this.bearing = 3;
 	}
 	//move right
 	if(game.keyboard[39]){
@@ -109,6 +118,7 @@ Spaceship.prototype.update = function() {
 		if(this.x + Math.floor(this.width/2) > game.canvas.width){
 			this.x = game.canvas.width - Math.floor(this.width/2);
 		}
+		this.bearing = 1;
 	}
 	//fire a laser
 	if(game.keyboard[32]){
@@ -126,6 +136,7 @@ Spaceship.prototype.fireLaser = function() {
 	var laser = new Laser();
 	laser.x = this.x;
 	laser.y = this.y - Math.floor(this.height/2);
+	laser.state = 'hit';
 	game.lasers.push(laser);
 };
 
@@ -134,13 +145,15 @@ function Laser(){
 	this.width = 10;
 	this.height = 30;
 	this.state = 'clear';
+	this.counter = 0;
 };
 Laser.inheritsFrom(PhysicalEntity);
 //draw a Laser
 Laser.prototype.draw = function(context){
 	/*context.fillStyle = (this.state == 'clear' ? 'white' : 'blue');
 	context.fillRect(0, 0, this.width, this.height);*/
-    context.drawImage(viewport.laser_image, 0, 0, this.width, this.height);
+    if(this.state === 'clear') context.drawImage(viewport.laser_image, 0, 0, this.width, this.height);
+    else if (this.state === 'hit') context.drawImage(viewport.laser_image_hit, 0, 0, this.width, this.height);
 };
 //update a laser
 Laser.prototype.update = function(){
@@ -152,13 +165,25 @@ Laser.prototype.update = function(){
 			game.invaders[i].counter = 0;
 		}
 	}
+	this.resetCounter();
 };
+//reset laser state
+Laser.prototype.resetCounter = function(){
+	if(this.state == 'hit'){
+		this.counter++;
+		if(this.counter >= 20){
+			this.state = 'clear';
+			this.counter = 0;
+		}
+	}
+}
 
 //define a missile
 function Missile(){
 	this.width = 10;
 	this.height = 33;
 	this.state = 'clear';
+	this.counter = 0;
 };
 Missile.inheritsFrom(Laser);
 //override update
@@ -168,12 +193,15 @@ Missile.prototype.update = function() {
 		this.state = 'hit';
 		game.spaceship.state = 'hit';
 	}
+	this.resetCounter();
 };
 //override draw
 Missile.prototype.draw = function(context){
 	/*context.fillStyle = (this.state == 'clear' ? 'yellow' : 'orange');
 	context.fillRect(0,0,this.width,this.height);*/
-    context.drawImage(viewport.missile_image, 0, 0, this.width, this.height);
+    if(this.state === 'clear') context.drawImage(viewport.missile_image, 0, 0, this.width, this.height);
+    else if (this.state === 'hit') context.drawImage(viewport.missile_image_hit, 0, 0, this.width, this.height);
+    //else context.drawImage(viewport.missile_image, 0, 0, this.width, this.height);
 };
 
 //define a space invader
@@ -189,7 +217,9 @@ Invader.inheritsFrom(PhysicalEntity);
 Invader.prototype.draw = function(context){
 	/*context.fillStyle = this.state == 'hit'? 'purple' : 'red';
 	context.fillRect(0,0,this.width,this.height);*/
-    context.drawImage(viewport.invader_image, 0, 0, this.width, this.height);
+    if(this.state === 'alive') context.drawImage(viewport.invader_image, 0, 0, this.width, this.height);
+    else if(this.state === 'hit') context.drawImage(viewport.invader_image_hit, 0, 0, this.width, this.height);
+    //else context.drawImage(viewport.invader_image, 0, 0, this.width, this.height);
 };
 //update an invader
 Invader.prototype.update = function(){
@@ -214,6 +244,7 @@ Invader.prototype.fireMissile = function (){
 	var missile = new Missile();
 	missile.x = this.x;
 	missile.y = this.y;
+	missile.state = 'hit';
     missile.x += + (randomNumber(2) == 2 ? Math.floor(this.width/2) : -Math.floor(this.width/2) );
 	game.missiles.push(missile);
 };
@@ -335,9 +366,15 @@ var game = {
 
 var viewport = {
     spaceship_image: null,
+    spaceship_image_hit: null,
+    spaceship_image_left: null,
+    spaceship_image_right: null,
     invader_image: null,
+    invader_image_hit: null,
     laser_image: null,
+    laser_image_hit: null,
     missile_image: null,
+    missile_image_hit: null,
     background_image: null,
 	//fills the background with black
 	clearBackground: function(){
@@ -444,15 +481,33 @@ var viewport = {
         //load spaceship-still image
         viewport.spaceship_image = new Image();
         viewport.spaceship_image.src = 'images/spaceship-01.png';
+        //load spaceship-hit image
+        viewport.spaceship_image_hit = new Image();
+        viewport.spaceship_image_hit.src = 'images/spaceship-hit-01.png';
+        //load spaceship-left image
+        viewport.spaceship_image_left = new Image();
+        viewport.spaceship_image_left.src = 'images/spaceship-left-01.png';
+        //load spaceship-right image
+        viewport.spaceship_image_right = new Image();
+        viewport.spaceship_image_right.src = 'images/spaceship-right-01.png';
         //load laser image
         viewport.laser_image = new Image();
         viewport.laser_image.src = 'images/laser-01.png';
+        //load laser hit image
+        viewport.laser_image_hit = new Image();
+        viewport.laser_image_hit.src = 'images/laser-xplode-01.png';
         //load invader image
         viewport.invader_image = new Image();
         viewport.invader_image.src = 'images/invader-01.png';
+        //load invader hit image
+        viewport.invader_image_hit = new Image();
+        viewport.invader_image_hit.src = 'images/invader-01.png';
         //load missile image
         viewport.missile_image = new Image();
         viewport.missile_image.src = 'images/missile-01.png';
+        //load missile hit image
+        viewport.missile_image_hit = new Image();
+        viewport.missile_image_hit.src = 'images/missile-xplode-01.png';
     },
 };
 
