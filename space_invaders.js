@@ -82,13 +82,14 @@ function Spaceship(){
 Spaceship.inheritsFrom(PhysicalEntity);
 //draw the Spaceship
 Spaceship.prototype.draw = function(context){
-	context.fillStyle = (this.state == 'alive' ? 'white' : 'purple');
+	/*context.fillStyle = (this.state == 'alive' ? 'white' : 'purple');
 	context.beginPath();
 	context.moveTo( Math.floor(this.width)/2, 0);
 	context.lineTo(this.width, this.height);
 	context.lineTo(0, this.height);
 	context.closePath();
-	context.fill();
+	context.fill();*/
+    context.drawImage(viewport.spaceship_image, 0, 0, this.width, this.height);
 	if(DEBUG) this.parent.draw.call(this, context);
 };
 //updates Spaceship
@@ -137,8 +138,9 @@ function Laser(){
 Laser.inheritsFrom(PhysicalEntity);
 //draw a Laser
 Laser.prototype.draw = function(context){
-	context.fillStyle = (this.state == 'clear' ? 'white' : 'blue');
-	context.fillRect(0, 0, this.width, this.height);
+	/*context.fillStyle = (this.state == 'clear' ? 'white' : 'blue');
+	context.fillRect(0, 0, this.width, this.height);*/
+    context.drawImage(viewport.laser_image, 0, 0, this.width, this.height);
 };
 //update a laser
 Laser.prototype.update = function(){
@@ -169,8 +171,9 @@ Missile.prototype.update = function() {
 };
 //override draw
 Missile.prototype.draw = function(context){
-	context.fillStyle = (this.state == 'clear' ? 'yellow' : 'orange');
-	context.fillRect(0,0,this.width,this.height);
+	/*context.fillStyle = (this.state == 'clear' ? 'yellow' : 'orange');
+	context.fillRect(0,0,this.width,this.height);*/
+    context.drawImage(viewport.missile_image, 0, 0, this.width, this.height);
 };
 
 //define a space invader
@@ -184,8 +187,9 @@ function Invader(){
 Invader.inheritsFrom(PhysicalEntity);
 //draw an invader
 Invader.prototype.draw = function(context){
-	context.fillStyle = this.state == 'hit'? 'purple' : 'red';
-	context.fillRect(0,0,this.width,this.height);
+	/*context.fillStyle = this.state == 'hit'? 'purple' : 'red';
+	context.fillRect(0,0,this.width,this.height);*/
+    context.drawImage(viewport.invader_image, 0, 0, this.width, this.height);
 };
 //update an invader
 Invader.prototype.update = function(){
@@ -330,10 +334,14 @@ var game = {
 };
 
 var viewport = {
+    spaceship_image: null,
+    invader_image: null,
+    laser_image: null,
+    missile_image: null,
+    background_image: null,
 	//fills the background with black
 	clearBackground: function(){
-		game.context.fillStyle = '#000000';
-		game.context.fillRect(0,0,game.canvas.width,game.canvas.height);
+		game.context.drawImage(viewport.background_image, 0, 0, game.canvas.width, game.canvas.height);
 	},
 	//paints a spaceship
 	paintSpaceship: function() {
@@ -428,11 +436,30 @@ var viewport = {
     drawMessages: function(){
         
     },
+    //load media assets
+    loadResources: function(){
+        //load background image
+        viewport.background_image = new Image();
+        viewport.background_image.src = 'images/background-01.png';
+        //load spaceship-still image
+        viewport.spaceship_image = new Image();
+        viewport.spaceship_image.src = 'images/spaceship-01.png';
+        //load laser image
+        viewport.laser_image = new Image();
+        viewport.laser_image.src = 'images/laser-01.png';
+        //load invader image
+        viewport.invader_image = new Image();
+        viewport.invader_image.src = 'images/invader-01.png';
+        //load missile image
+        viewport.missile_image = new Image();
+        viewport.missile_image.src = 'images/missile-01.png';
+    },
 };
 
 //setup game controls
 viewport.addKeyboardEvents();
 //initialize game content
+viewport.loadResources();
 viewport.startGame();
 //make sure game loop gets run at a 60pfs rate
 game.gameLoopHandle = setInterval(game.gameLoop, 1000/game.gameSpeed);
