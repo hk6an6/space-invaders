@@ -79,6 +79,7 @@ function Spaceship(){
 	this.counter = 0;
     this.state = 'alive';
     this.bearing = 0;
+    this.timeTillCooldown = -1;
 };
 Spaceship.inheritsFrom(PhysicalEntity);
 //draw the Spaceship
@@ -95,11 +96,18 @@ Spaceship.prototype.draw = function(context){
     	else if(this.bearing == 1) context.drawImage(viewport.spaceship_image_right, 0, 0, this.width, this.height);
     	else if(this.bearing == 3) context.drawImage(viewport.spaceship_image_left, 0, 0, this.width, this.height);
     }
-    else if(this.state == 'hit') context.drawImage(viewport.spaceship_image_hit, 0, 0, this.width, this.height);
+    else if(this.state == 'hit'){ 
+        context.fillStyle = 'blue';
+        context.drawImage(viewport.spaceship_image_hit, 0, 0, this.width, this.height);
+    }
 	if(DEBUG) this.parent.draw.call(this, context);
 };
 //updates Spaceship
 Spaceship.prototype.update = function() {
+    //cool down laser gun
+    if(this.timeTillCooldown >= 0){
+        this.timeTillCooldown -= 1;    
+    }
 	//reset spaceship bearing
 	this.bearing = 0;
     //stop spaceship from moving if it's not 'alive'
@@ -133,10 +141,17 @@ Spaceship.prototype.update = function() {
 };
 //fire a Laser
 Spaceship.prototype.fireLaser = function() {
+    //don't fire if gun has yet to cooldown
+    if(this.timeTillCooldown >= 0){
+        return;    
+    }
 	var laser = new Laser();
 	laser.x = this.x;
 	laser.y = this.y - Math.floor(this.height/2);
 	laser.state = 'hit';
+    //start laser gun cooldown
+    this.timeTillCooldown = 110;
+    //shoot!
 	game.lasers.push(laser);
 };
 
@@ -218,7 +233,10 @@ Invader.prototype.draw = function(context){
 	/*context.fillStyle = this.state == 'hit'? 'purple' : 'red';
 	context.fillRect(0,0,this.width,this.height);*/
     if(this.state === 'alive') context.drawImage(viewport.invader_image, 0, 0, this.width, this.height);
-    else if(this.state === 'hit') context.drawImage(viewport.invader_image_hit, 0, 0, this.width, this.height);
+    else if(this.state === 'hit'){ 
+        context.fillStyle = 'purple';
+        context.drawImage(viewport.invader_image_hit, 0, 0, this.width, this.height);
+    }
     //else context.drawImage(viewport.invader_image, 0, 0, this.width, this.height);
 };
 //update an invader
