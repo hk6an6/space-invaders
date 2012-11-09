@@ -358,7 +358,7 @@ var game = {
         if(game.spaceship.state === 'hit' && game.state === 'playing'){
             game.state = 'over';
             game.message.title = "\n\nGame Over";
-            game.message.body = '\npress spacebar to play again!';
+            game.message.body = '\npress spacebar or tilt your phone\nforward to play again!\nTilt sideways to move spaceship while playing';
             game.message.counter = 0;
         }
         
@@ -370,7 +370,7 @@ var game = {
         else if(game.state === 'playing' && game.invaders.length === 0){
             game.state = 'won';
             game.message.title = "\n\nInvaders exterminated";
-            game.message.body = '\npress spacebar to play again!';
+            game.message.body = '\npress spacebar or tilt your phone\nforward to play again!\nTilt sideways to move spaceship while playing';
             game.message.counter = 0;
         }
         
