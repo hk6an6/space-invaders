@@ -1,4 +1,5 @@
 var DEBUG = false;
+var ACCELEROMETER = window.DeviceMotionEvent != null;
 
 function randomNumber(max){
 	return Math.floor(Math.random() * max + 1);
@@ -113,23 +114,23 @@ Spaceship.prototype.update = function() {
     //stop spaceship from moving if it's not 'alive'
     if(this.state !== 'alive') return;
 	//move left
-	if(game.keyboard[37]){
-		this.x -= 10;
+	if(game.keyboard[37] || (ACCELEROMETER && game.keyboard.tiltLR > 0)){
+		this.x -= ACCELEROMETER ? Math.floor(10 * Math.abs(game.keyboard.tiltLR)): 10;
 		if(this.x - Math.floor(this.width/2) < 0){
 			this.x = Math.floor(this.width/2);
 		}
 		this.bearing = 3;
 	}
 	//move right
-	if(game.keyboard[39]){
-		this.x += 10;
+	if(game.keyboard[39] || (ACCELEROMETER && game.keyboard.tiltLR < 0)){
+		this.x += ACCELEROMETER ? Math.floor(10 * Math.abs(game.keyboard.tiltLR)): 10;
 		if(this.x + Math.floor(this.width/2) > game.canvas.width){
 			this.x = game.canvas.width - Math.floor(this.width/2);
 		}
 		this.bearing = 1;
 	}
 	//fire a laser
-	if(game.keyboard[32]){
+	if(game.keyboard[32] || (ACCELEROMETER && game.keyboard.tiltFB < 0)){
 		if(! game.keyboard.fired){
 			this.fireLaser();
 			game.keyboard.fired = true;
@@ -361,7 +362,7 @@ var game = {
             game.message.counter = 0;
         }
         
-        else if(game.state === 'over' && game.keyboard[32]){
+        else if(game.state === 'over' && (game.keyboard[32] || (ACCELEROMETER && game.keyboard.tiltFB < 0))){
             game.message.counter = -1;
             viewport.startGame();    
         }
@@ -373,7 +374,7 @@ var game = {
             game.message.counter = 0;
         }
         
-        else if(game.state === 'won' && game.keyboard[32]){
+        else if(game.state === 'won' && (game.keyboard[32] || (ACCELEROMETER && game.keyboard.tiltFB < 0))){
             game.message.counter = -1;
             viewport.startGame();
         }
@@ -478,6 +479,31 @@ var viewport = {
     onKeyup: function(e) {
         game.keyboard[e.keyCode] = false;
     },
+    //handle device motion events
+    onDeviceMoved: function(e){
+        //inhibit default behavior
+        e.preventDefault();
+        //calculate device state
+        game.keyboard.acceleration = e.accelerationIncludingGravity;
+		game.keyboard.facingUp = -1;
+		if (game.keyboard.acceleration.z > 0) {
+			game.keyboard.facingUp = +1;
+		}
+        //save device state
+        //0 degrees means the device is leveled
+        //a positive angle follows counter clockwise movement (tilt left)
+        //40 degrees is max allowed right-left tilt
+		game.keyboard.tiltLR = Math.round(((game.keyboard.acceleration.x) / 9.81) * -90)/40; 
+		//0 degrees is portrait mode, while -180 means device is upside down
+        // -90 degrees marks the 'belly up' position. This angle will be negative as long the device is still facing upwards
+        // 30 degrees is the max allowed forth-back tilt
+        game.keyboard.tiltFB = Math.round(((game.keyboard.acceleration.y + 9.81) / 9.81) * 90 * game.keyboard.facingUp);
+        if(game.keyboard.tiltFB < -90){ // closer to -180 means device is going upside down
+            game.keyboard.tiltFB = game.keyboard.tiltFB/120; // -30 away from -90 degrees is maximum allowed forwards tilt
+        }else if (game.keyboard.tiltFB > -90){ // closer to 0 means device is going into portrait mode
+            game.keyboard.tiltFB = Math.abs(game.keyboard.tiltFB+90)/60; // 30 away from -90 degrees is maximum allowed backwards tilt
+        }
+    },
 	//registers keyboard events
 	addKeyboardEvents: function() {
 		addEvent(document, 'keydown', function(e){
@@ -486,6 +512,9 @@ var viewport = {
 		addEvent(document, 'keyup', function(e){
 			viewport.onKeyup(e);
 		}, true);
+        if(ACCELEROMETER){
+            window.addEventListener('devicemotion',viewport.onDeviceMoved,true);    
+        }
 	},
     //draw messages on the screen
     drawMessages: function(){
