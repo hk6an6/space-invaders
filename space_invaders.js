@@ -1,8 +1,9 @@
 var DEBUG = false;
-var ACCELEROMETER = window.DeviceMotionEvent != null;
+var ACCELEROMETER = window.DeviceMotionEvent != null && window.navigator.userAgent.indexOf("Safari") >= 0;
+var RELATIVE_MEDIA_PREFIX = '';
 
 function randomNumber(max){
-	return Math.floor(Math.random() * max + 1);
+    return Math.floor(Math.random() * max + 1);
 }
 
 //setup class inheritance
@@ -29,10 +30,11 @@ function PhysicalEntity(){
 	//entity dimensions
 	this.width = 0;
 	this.height = 0;
+	this.moving = true;
 }
 //update entity status
 PhysicalEntity.prototype.update = function(){
-	if(DEBUG) console.log('updating: ' + this.constructor.name + '[width:' + this.width + ' height:' + this.height + '] at <' + this.x + ',' + this.y + '>');
+	//if(DEBUG) if( DEBUG ) console.log('updating: ' + this.constructor.name + '[width:' + this.width + ' height:' + this.height + '] at <' + this.x + ',' + this.y + '>');
 };
 //translates drawing context so that the space-box alloted for the entity's dimensions is centered on the entity's center of mass
 PhysicalEntity.prototype.paint = function(context){
@@ -43,32 +45,43 @@ PhysicalEntity.prototype.paint = function(context){
 };
 //draws the entity on screen
 PhysicalEntity.prototype.draw = function(context){
-	if(DEBUG) console.log('drawing: ' + this.constructor.name + '[width:' + this.width + ' height:' + this.height + '] at <' + this.x + ',' + this.y + '>');
+	//if(DEBUG) if( DEBUG ) console.log('drawing: ' + this.constructor.name + '[width:' + this.width + ' height:' + this.height + '] at <' + this.x + ',' + this.y + '>');
 };
-//returns true if the other entity collides with this one
-PhysicalEntity.prototype.hits = function( anotherPhysicalEntity, stop){
-    if((anotherPhysicalEntity.x - anotherPhysicalEntity.width/2) > (this.x - this.width/2)
-        && (anotherPhysicalEntity.x - anotherPhysicalEntity.width/2) <= (this.x + this.width/2)){
-        if((anotherPhysicalEntity.y - anotherPhysicalEntity.width/2) > (this.y - this.width/2)
-            && (anotherPhysicalEntity.y - anotherPhysicalEntity.width/2) <= (this.y + this.width/2)){
-            return true;
-        } else if ((anotherPhysicalEntity.y + anotherPhysicalEntity.width/2) < (this.y + this.width/2)
-            && (anotherPhysicalEntity.y + anotherPhysicalEntity.width/2) >= (this.y - this.width/2)){
-            return true;
-        }
-    } else if ((anotherPhysicalEntity.x + anotherPhysicalEntity.width/2) < (this.x + this.width/2)
-        && (anotherPhysicalEntity.x + anotherPhysicalEntity.width/2) >= (this.x - this.width/2)) {
-        if((anotherPhysicalEntity.y - anotherPhysicalEntity.width/2) > (this.y - this.width/2)
-            && (anotherPhysicalEntity.y - anotherPhysicalEntity.width/2) <= (this.y + this.width/2)){
-            return true;
-        } else if ((anotherPhysicalEntity.y + anotherPhysicalEntity.width/2) < (this.y + this.width/2)
-            && (anotherPhysicalEntity.y + anotherPhysicalEntity.width/2) >= (this.y - this.width/2)){
-            return true;
-        }
+//builds coordinates for a bounding rectangle around the entitys center of mass
+PhysicalEntity.prototype.updateBounds = function( ){
+	this.printBounds();
+	if( this.moving ){
+		this._left  =(this.x - this.width/2);
+		this._right =(this.x + this.width/2);
+		this._top   =(this.y - this.height/2);
+		this._bottom=(this.y + this.height/2);
+	}
+	this.printBounds();
+}
+PhysicalEntity.prototype.printBounds = function(){
+    if(DEBUG){
+        var locationDescriptor = '{x: '+this.x+', y: '+this.y+', width: '+this.width+', height: '+this.height+'}';
+        var boundDescriptor = '{left:'+this._left+', right:'+this._right+', top: '+this._top+', bottom: '+this._bottom+'}';
+        //console.log(locationDescriptor);
+        //console.log(boundDescriptor);
     }
-    if(!stop)
-        return anotherPhysicalEntity.hits(this, true);
-    return false;
+}
+//returns true if the other entity collides with this one
+PhysicalEntity.prototype.hits = function( anotherPhysicalEntity, stop ){
+	this.updateBounds( );
+	anotherPhysicalEntity.updateBounds( );
+	var collisionResult = false;
+	if ( 
+			( this._left <= anotherPhysicalEntity._left && this._right >= anotherPhysicalEntity._left ) 
+			|| ( this._left <= anotherPhysicalEntity._right && this._right >= anotherPhysicalEntity._right ) 
+		){
+			collisionResult = (
+				( this._bottom >= anotherPhysicalEntity._top && this._top <= anotherPhysicalEntity._top )
+				|| (  this._top <= anotherPhysicalEntity._bottom && this._bottom >= anotherPhysicalEntity._bottom )
+			);
+	}
+	if(DEBUG) console.log(collisionResult);
+	return collisionResult;
 };
 
 //defines a spaceship
@@ -524,37 +537,37 @@ var viewport = {
     loadResources: function(){
         //load background image
         viewport.background_image = new Image();
-        viewport.background_image.src = 'images/background-01.png';
+        viewport.background_image.src = RELATIVE_MEDIA_PREFIX + 'images/background-01.png';
         //load spaceship-still image
         viewport.spaceship_image = new Image();
-        viewport.spaceship_image.src = 'images/spaceship-01.png';
+        viewport.spaceship_image.src = RELATIVE_MEDIA_PREFIX + 'images/spaceship-01.png';
         //load spaceship-hit image
         viewport.spaceship_image_hit = new Image();
-        viewport.spaceship_image_hit.src = 'images/spaceship-hit-01.png';
+        viewport.spaceship_image_hit.src = RELATIVE_MEDIA_PREFIX + 'images/spaceship-hit-01.png';
         //load spaceship-left image
         viewport.spaceship_image_left = new Image();
-        viewport.spaceship_image_left.src = 'images/spaceship-left-01.png';
+        viewport.spaceship_image_left.src = RELATIVE_MEDIA_PREFIX + 'images/spaceship-left-01.png';
         //load spaceship-right image
         viewport.spaceship_image_right = new Image();
-        viewport.spaceship_image_right.src = 'images/spaceship-right-01.png';
+        viewport.spaceship_image_right.src = RELATIVE_MEDIA_PREFIX + 'images/spaceship-right-01.png';
         //load laser image
         viewport.laser_image = new Image();
-        viewport.laser_image.src = 'images/laser-01.png';
+        viewport.laser_image.src = RELATIVE_MEDIA_PREFIX + 'images/laser-01.png';
         //load laser hit image
         viewport.laser_image_hit = new Image();
-        viewport.laser_image_hit.src = 'images/laser-xplode-01.png';
+        viewport.laser_image_hit.src = RELATIVE_MEDIA_PREFIX + 'images/laser-xplode-01.png';
         //load invader image
         viewport.invader_image = new Image();
-        viewport.invader_image.src = 'images/invader-01.png';
+        viewport.invader_image.src = RELATIVE_MEDIA_PREFIX + 'images/invader-01.png';
         //load invader hit image
         viewport.invader_image_hit = new Image();
-        viewport.invader_image_hit.src = 'images/invader-01.png';
+        viewport.invader_image_hit.src = RELATIVE_MEDIA_PREFIX + 'images/invader-01.png';
         //load missile image
         viewport.missile_image = new Image();
-        viewport.missile_image.src = 'images/missile-01.png';
+        viewport.missile_image.src = RELATIVE_MEDIA_PREFIX + 'images/missile-01.png';
         //load missile hit image
         viewport.missile_image_hit = new Image();
-        viewport.missile_image_hit.src = 'images/missile-xplode-01.png';
+        viewport.missile_image_hit.src = RELATIVE_MEDIA_PREFIX + 'images/missile-xplode-01.png';
     },
 };
 
